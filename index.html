@@ -60,9 +60,75 @@
         "areaServed": "Worldwide"
       }
     </script>
+    <style>
+      @keyframes wfShimmer {
+        0%, 100% { opacity: 0.45; }
+        50% { opacity: 0.9; }
+      }
+      .wf-boot-shell {
+        min-height: 100vh;
+        background: #080b1a;
+        color: #f5f7ff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      .wf-boot-bar {
+        height: 3px;
+        width: 100%;
+        background: linear-gradient(90deg, #397bff, #8555ff, #397bff);
+        animation: wfShimmer 1.4s ease-in-out infinite;
+      }
+      .wf-boot-nav {
+        height: 64px;
+        border-bottom: 1px solid rgba(245, 247, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .wf-boot-hero {
+        max-width: 1200px;
+        min-height: calc(100vh - 67px);
+        margin: 0 auto;
+        padding: 48px 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 20px;
+      }
+      .wf-boot-block {
+        border-radius: 10px;
+        background: #10152b;
+        animation: wfShimmer 1.6s ease-in-out infinite;
+      }
+    </style>
   </head>
   <body class="antialiased selection:bg-[#397BFF]/30" style="background-color: #080B1A; color: #F5F7FF;">
-    <div id="root"></div>
+    <div id="root">
+      <div class="wf-boot-shell" aria-label="Loading WebFlow Creative Studio">
+        <div class="wf-boot-bar"></div>
+        <div class="wf-boot-nav">
+          <div class="wf-boot-block" style="width: 176px; height: 20px;"></div>
+          <div class="wf-boot-block" style="width: 112px; height: 36px;"></div>
+        </div>
+        <div class="wf-boot-hero">
+          <div class="wf-boot-block" style="width: 210px; height: 14px; background: rgba(57, 123, 255, 0.25);"></div>
+          <div class="wf-boot-block" style="width: min(520px, 90%); height: 52px;"></div>
+          <div class="wf-boot-block" style="width: min(440px, 78%); height: 52px;"></div>
+          <div class="wf-boot-block" style="width: min(480px, 88%); height: 18px; margin-top: 8px;"></div>
+          <div style="display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
+            <div class="wf-boot-block" style="width: 160px; height: 44px; background: rgba(57, 123, 255, 0.3);"></div>
+            <div class="wf-boot-block" style="width: 176px; height: 44px; border: 1px solid rgba(255,255,255,0.12);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <noscript>
+      <div style="padding: 32px; text-align: center; background: #080B1A; color: #F5F7FF; font-family: sans-serif;">
+        WebFlow Creative Studio requires JavaScript enabled to view the interactive portfolio. Reach out directly at 01webflow@gmail.com.
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

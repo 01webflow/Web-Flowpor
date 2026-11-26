@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   ArrowDown,
@@ -11,14 +11,18 @@ import {
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import ScrollProgressBar from './components/ScrollProgressBar';
-import StudioScene3D from './components/StudioScene3D';
-import ProjectModal from './components/ProjectModal';
-import TestimonialsCarousel from './components/TestimonialsCarousel';
-import JournalSection from './components/JournalSection';
-import FaqSection from './components/FaqSection';
-import ContactSection from './components/ContactSection';
-import NewsletterSection from './components/NewsletterSection';
-import SearchOverlay from './components/SearchOverlay';
+import StudioPreloader from './components/StudioPreloader';
+import ErrorBoundary from './components/ErrorBoundary';
+import SectionSkeleton, { HeroSceneSkeleton } from './components/SectionSkeleton';
+
+const StudioScene3D = lazy(() => import('./components/StudioScene3D'));
+const ProjectModal = lazy(() => import('./components/ProjectModal'));
+const TestimonialsCarousel = lazy(() => import('./components/TestimonialsCarousel'));
+const JournalSection = lazy(() => import('./components/JournalSection'));
+const FaqSection = lazy(() => import('./components/FaqSection'));
+const ContactSection = lazy(() => import('./components/ContactSection'));
+const NewsletterSection = lazy(() => import('./components/NewsletterSection'));
+const SearchOverlay = lazy(() => import('./components/SearchOverlay'));
 import {
   SERVICES,
   PROJECTS,
@@ -64,6 +68,37 @@ export default function App() {
   const [activeJournalPost, setActiveJournalPost] = useState<JournalPost | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [appReady, setAppReady] = useState(() => Boolean(prefersReducedMotion));
+
+  useEffect(() => {
+    if (appReady) return;
+    let cancelled = false;
+    let rafId = 0;
+
+    const markReady = () => {
+      if (!cancelled) setAppReady(true);
+    };
+
+    const maxWaitTimer = window.setTimeout(markReady, 420);
+
+    const onFrame = () => {
+      if (document.fonts && typeof document.fonts.ready?.then === 'function') {
+        document.fonts.ready.then(() => {
+          window.setTimeout(markReady, 180);
+        });
+      } else {
+        window.setTimeout(markReady, 240);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(onFrame);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(maxWaitTimer);
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [appReady]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -142,6 +177,7 @@ export default function App() {
         }}
       />
 
+      <StudioPreloader ready={appReady} reducedMotion={Boolean(prefersReducedMotion)} />
       <ScrollProgressBar />
       <Navbar
         theme={theme}
@@ -158,7 +194,11 @@ export default function App() {
           className="relative min-h-[100svh] flex items-center pt-20 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
         >
           {/* Full-Bleed Three.js 3D Backdrop */}
-          <StudioScene3D theme={theme} />
+          <ErrorBoundary variant="hero">
+            <Suspense fallback={<HeroSceneSkeleton />}>
+              <StudioScene3D theme={theme} />
+            </Suspense>
+          </ErrorBoundary>
 
           {/* Readability gradient scrim on left side so hero typography stays >= 4.5:1 */}
           <div
@@ -631,38 +671,48 @@ export default function App() {
         {/* =====================================================
             CLIENT TESTIMONIALS CAROUSEL
            ===================================================== */}
-        <TestimonialsCarousel />
+        <Suspense fallback={<SectionSkeleton />}>
+          <TestimonialsCarousel />
+        </Suspense>
 
         <div className="hairline-rule" />
 
         {/* =====================================================
             STUDIO JOURNAL / BLOG NOTES
            ===================================================== */}
-        <JournalSection
-          selectedPost={activeJournalPost}
-          onSelectPost={setActiveJournalPost}
-        />
+        <Suspense fallback={<SectionSkeleton />}>
+          <JournalSection
+            selectedPost={activeJournalPost}
+            onSelectPost={setActiveJournalPost}
+          />
+        </Suspense>
 
         <div className="hairline-rule" />
 
         {/* =====================================================
             FAQ SECTION
            ===================================================== */}
-        <FaqSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <FaqSection />
+        </Suspense>
 
         <div className="hairline-rule" />
 
         {/* =====================================================
             CONTACT SECTION
            ===================================================== */}
-        <ContactSection />
+        <Suspense fallback={<SectionSkeleton />}>
+          <ContactSection />
+        </Suspense>
 
         <div className="hairline-rule" />
 
         {/* =====================================================
             NEWSLETTER SUBSCRIPTION SECTION
            ===================================================== */}
-        <NewsletterSection />
+        <Suspense fallback={<SectionSkeleton compact />}>
+          <NewsletterSection />
+        </Suspense>
       </main>
 
       {/* =====================================================
@@ -777,15 +827,23 @@ export default function App() {
       </footer>
 
       {/* Project Lightbox Modal */}
-      <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
+      <Suspense fallback={null}>
+        {activeProject && (
+          <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
+        )}
+      </Suspense>
 
       {/* Global Search Overlay */}
-      <SearchOverlay
-        isOpen={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onSelectProject={(project) => setActiveProject(project)}
-        onSelectJournal={(post) => setActiveJournalPost(post)}
-      />
+      <Suspense fallback={null}>
+        {searchOpen && (
+          <SearchOverlay
+            isOpen={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            onSelectProject={(project) => setActiveProject(project)}
+            onSelectJournal={(post) => setActiveJournalPost(post)}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

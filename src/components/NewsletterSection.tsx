@@ -55,7 +55,7 @@ export default function NewsletterSection() {
     setStatus({ state: 'idle', text: '' });
 
     try {
-      const response = await fetch('/api/newsletter', {
+      const response = await fetch('./api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),

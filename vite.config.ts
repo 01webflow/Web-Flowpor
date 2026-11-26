@@ -2,11 +2,27 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
+import {fileURLToPath} from 'url';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig(({command}) => {
+  const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1];
+  const rawBase =
+    process.env.VITE_BASE_PATH ||
+    (command === 'build' && process.env.GITHUB_ACTIONS === 'true' && repoName
+      ? `/${repoName}/`
+      : command === 'build'
+        ? './'
+        : '/');
+  const base =
+    rawBase === './'
+      ? './'
+      : `/${rawBase.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/+/, '/');
+
   return {
-    base: './',
+    base,
     plugins: [
       react(),
       tailwindcss(),
@@ -20,8 +36,8 @@ export default defineConfig(() => {
           if (error) {
             return;
           }
-          const distDir = path.resolve(__dirname, 'dist');
-          const srcAssets = path.resolve(__dirname, 'src/assets');
+          const distDir = path.resolve(configDir, 'dist');
+          const srcAssets = path.resolve(configDir, 'src/assets');
           const distAssets = path.resolve(distDir, 'src/assets');
           if (fs.existsSync(distDir) && fs.existsSync(srcAssets)) {
             fs.cpSync(srcAssets, distAssets, {recursive: true, force: true});
@@ -29,9 +45,29 @@ export default defineConfig(() => {
         },
       },
     ],
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      chunkSizeWarningLimit: 750,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/three')) {
+              return 'three-vendor';
+            }
+            if (id.includes('node_modules/motion') || id.includes('node_modules/lucide-react')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('node_modules/react')) {
+              return 'react-vendor';
+            }
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(configDir, '.'),
       },
     },
     server: {

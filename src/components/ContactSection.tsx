@@ -129,7 +129,7 @@ export default function ContactSection() {
     setStatusMessage({ state: 'idle', text: '' });
 
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch('./api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
@@ -281,7 +281,7 @@ export default function ContactSection() {
           {/* Right Column: Validated Inquiry Form */}
           <div className="lg:col-span-7">
             <form
-              action="/api/contact"
+              action="./api/contact"
               method="post"
               noValidate
               onSubmit={handleSubmit}
