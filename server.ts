@@ -262,6 +262,89 @@ async function handleContactSubmission(req: Request, res: Response): Promise<voi
   }
 }
 
+function buildMinimalPdfBuffer(projectId: string): Buffer {
+  const safeTitle = projectId.replace(/[^a-zA-Z0-9-_ ]/g, '').slice(0, 48) || 'Studio Project';
+  const streamContent = `BT
+/F1 18 Tf
+54 740 Td
+(WebFlow Creative Studio - Project Case Study) Tj
+0 -28 Td
+/F1 13 Tf
+(Project Reference: ${safeTitle}) Tj
+0 -22 Td
+(Prepared by WebFlow Creative Studio | Ghana / Worldwide Remote) Tj
+0 -22 Td
+(Contact: 01webflow@gmail.com | +233 24 369 2913) Tj
+ET`;
+
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n',
+    `4 0 obj\n<< /Length ${Buffer.byteLength(streamContent, 'utf8')} >>\nstream\n${streamContent}\nendstream\nendobj\n`,
+    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [0];
+  for (const obj of objects) {
+    offsets.push(Buffer.byteLength(pdf, 'utf8'));
+    pdf += obj;
+  }
+  const xrefStart = Buffer.byteLength(pdf, 'utf8');
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= objects.length; i++) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`;
+  return Buffer.from(pdf, 'utf8');
+}
+
+function handleNewsletterSubscription(req: Request, res: Response): void {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!isValidEmail(email)) {
+    res.status(400).json({
+      ok: false,
+      error: 'Please enter a valid email address.',
+    });
+    return;
+  }
+
+  try {
+    const dataDir = path.resolve(__dirname, 'data');
+    const filePath = path.join(dataDir, 'newsletter.json');
+    fs.mkdirSync(dataDir, { recursive: true });
+
+    let subscribers: { email: string; subscribedAt: string }[] = [];
+    if (fs.existsSync(filePath)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (Array.isArray(parsed)) subscribers = parsed;
+      } catch {
+        subscribers = [];
+      }
+    }
+
+    const exists = subscribers.some((entry) => entry.email === email);
+    if (!exists) {
+      subscribers.unshift({ email, subscribedAt: new Date().toISOString() });
+      fs.writeFileSync(filePath, JSON.stringify(subscribers.slice(0, 500), null, 2), 'utf8');
+    }
+
+    res.status(200).json({
+      ok: true,
+      message: exists
+        ? `${email} is already subscribed to studio dispatches.`
+        : `Subscribed! Studio updates and new case studies will be sent to ${email}.`,
+    });
+  } catch {
+    res.status(500).json({
+      ok: false,
+      error: 'Unable to save subscription right now. Please try again.',
+    });
+  }
+}
+
 async function startServer(): Promise<void> {
   const app = express();
   app.use(express.json({ limit: '100kb' }));
@@ -276,6 +359,15 @@ async function startServer(): Promise<void> {
 
   app.post('/api/contact', handleContactSubmission);
   app.post('/__hh/form', handleContactSubmission);
+  app.post('/api/newsletter', handleNewsletterSubscription);
+
+  app.get('/api/case-study/:projectId.pdf', (req: Request, res: Response) => {
+    const projectId = String(req.params.projectId || 'studio-project').replace(/[^a-zA-Z0-9-_]/g, '');
+    const pdfBuffer = buildMinimalPdfBuffer(projectId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${projectId}-case-study.pdf"`);
+    res.send(pdfBuffer);
+  });
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');

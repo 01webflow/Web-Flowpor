@@ -135,6 +135,15 @@ export default function ContactSection() {
         body: JSON.stringify(values),
       });
 
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        setStatusMessage({
+          state: 'error',
+          text: `Direct inquiry submission requires the studio backend server. Please email ${STUDIO_CONTACT.email} or message WhatsApp ${STUDIO_CONTACT.phoneDisplay} directly.`,
+        });
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok || !data.ok) {

@@ -17,6 +17,7 @@ import TestimonialsCarousel from './components/TestimonialsCarousel';
 import JournalSection from './components/JournalSection';
 import FaqSection from './components/FaqSection';
 import ContactSection from './components/ContactSection';
+import NewsletterSection from './components/NewsletterSection';
 import SearchOverlay from './components/SearchOverlay';
 import {
   SERVICES,
@@ -50,8 +51,12 @@ export default function App() {
   const prefersReducedMotion = useReducedMotion();
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === 'undefined') return 'dark';
-    const stored = window.localStorage.getItem('wf-theme');
-    return stored === 'light' ? 'light' : 'dark';
+    try {
+      const stored = window.localStorage.getItem('wf-theme');
+      return stored === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
   });
   const [cursorBloom, setCursorBloom] = useState({ x: 50, y: 20 });
   const [filter, setFilter] = useState<ProjectFilter>('all');
@@ -74,7 +79,13 @@ export default function App() {
   useEffect(() => {
     const isDark = theme === 'dark';
     document.documentElement.classList.toggle('dark', isDark);
-    window.localStorage.setItem('wf-theme', theme);
+    document.body.style.backgroundColor = isDark ? '#080B1A' : '#F5F7FF';
+    document.body.style.color = isDark ? '#F5F7FF' : '#0f172a';
+    try {
+      window.localStorage.setItem('wf-theme', theme);
+    } catch {
+      // Ignore storage write errors in restricted browsing contexts
+    }
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
       metaTheme.setAttribute('content', isDark ? '#080B1A' : '#F5F7FF');
@@ -645,6 +656,13 @@ export default function App() {
             CONTACT SECTION
            ===================================================== */}
         <ContactSection />
+
+        <div className="hairline-rule" />
+
+        {/* =====================================================
+            NEWSLETTER SUBSCRIPTION SECTION
+           ===================================================== */}
+        <NewsletterSection />
       </main>
 
       {/* =====================================================

@@ -1,3 +1,8 @@
+import nayaWebImg from '../assets/images/project_naya_botanics_web_1795730500535.jpg';
+import nayaIdentityImg from '../assets/images/project_naya_botanics_identity_1795730500602.jpg';
+import thinkpadUgcImg from '../assets/images/project_thinkpad_ugc_concept_1795730501438.jpg';
+import chopNChillImg from '../assets/images/project_chop_n_chill_web_1795730502111.jpg';
+
 export interface ServiceItem {
   index: string;
   title: string;
@@ -120,7 +125,7 @@ export const PROJECTS: ProjectItem[] = [
       'A fictional natural skincare storefront concept structured around calm editorial pacing, tactile product storytelling, and responsive storefront navigation.',
     tools: 'Lovable · AI Website Builder',
     status: 'Concept Project',
-    image: '/src/assets/images/project_naya_botanics_web_1795730500535.jpg',
+    image: nayaWebImg,
     imageAlt: 'Naya Botanics natural skincare website concept displayed on an angled dark laptop in a studio setting',
     creativeDirection:
       'Designed to balance botanical warmth with disciplined e-commerce hierarchy. Full-bleed hero framing pairs with ingredient-led product cards, a founder ritual narrative, and accessible contrast across mobile and desktop breakpoints.',
@@ -141,7 +146,7 @@ export const PROJECTS: ProjectItem[] = [
       'A complete visual identity exploration for the fictional Naya Botanics line—unifying monogram mark design, packaging tactile finishes, and warm organic color systems.',
     tools: 'Brand System · Typography · Packaging Direction',
     status: 'Concept Project',
-    image: '/src/assets/images/project_naya_botanics_identity_1795730500602.jpg',
+    image: nayaIdentityImg,
     imageAlt: 'Naya Botanics skincare brand identity packaging flatlay with amber dropper bottle and embossed cream box',
     creativeDirection:
       'Built around tactile restraint: embossed cream paper stock, frosted amber glass vessels, and refined serif wordmarks that translate seamlessly from physical apothecary packaging to digital editorial layouts.',
@@ -168,7 +173,7 @@ export const PROJECTS: ProjectItem[] = [
       'A vertical 9:16 creator-led promotional video concept spotlighting the ThinkPad T14 in an authentic modern lifestyle workflow, presented as an interactive production storyboard.',
     tools: 'AI UGC Workflow · Storyboarding · Creative Direction',
     status: 'In Development',
-    image: '/src/assets/images/project_thinkpad_ugc_concept_1795730501438.jpg',
+    image: thinkpadUgcImg,
     imageAlt: 'African female digital creator demonstrating a matte black ThinkPad laptop at a sunlit apartment desk with vertical phone rig',
     creativeDirection:
       'Moves away from sterile hardware spec sheets toward relatable daily utility. Framed for TikTok and Instagram Reels, an African female creator walks viewers through remote design sprints, keyboard ergonomics, and crisp outdoor-window legibility.',
@@ -219,7 +224,7 @@ export const PROJECTS: ProjectItem[] = [
       'A responsive food and lounge web interface built for high-appetite visual storytelling, intuitive menu exploration, and instant mobile-friendly ordering access.',
     tools: 'Responsive Web UI · Frontend Engineering · GitHub Pages',
     status: 'Live Web Interface',
-    image: '/src/assets/images/project_chop_n_chill_web_1795730502111.jpg',
+    image: chopNChillImg,
     imageAlt: "Chop 'n' Chill gourmet grill and chilled lounge web interface displayed on a studio monitor",
     creativeDirection:
       'Balances dark atmospheric lounge warmth with crisp menu scannability. Designed so visitors on mobile and desktop can browse signature grills, chilled drinks, and reservations without friction.',

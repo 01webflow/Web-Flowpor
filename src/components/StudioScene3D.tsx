@@ -120,28 +120,31 @@ export default function StudioScene3D({ theme }: { theme: ThemeMode }) {
     const container = mountRef.current;
     if (!container) return;
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let cleanupFn: (() => void) | undefined;
 
-    // Detect software WebGL strictly via GPU renderer string
-    const isSoftwareGl = (() => {
-      try {
-        const probeCanvas = document.createElement('canvas');
-        const gl = probeCanvas.getContext('webgl2');
-        if (!gl) return true;
-        const ext = gl.getExtension('WEBGL_debug_renderer_info');
-        const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
-        const gpu = String(gl.getParameter(param));
-        gl.getExtension('WEBGL_lose_context')?.loseContext();
-        return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
-      } catch {
-        return true;
-      }
-    })();
+    try {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const width = container.clientWidth || window.innerWidth;
-    const height = container.clientHeight || window.innerHeight;
+      // Detect software WebGL strictly via GPU renderer string
+      const isSoftwareGl = (() => {
+        try {
+          const probeCanvas = document.createElement('canvas');
+          const gl = probeCanvas.getContext('webgl2') || probeCanvas.getContext('webgl');
+          if (!gl) return true;
+          const ext = gl.getExtension('WEBGL_debug_renderer_info');
+          const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
+          const gpu = String(gl.getParameter(param));
+          gl.getExtension('WEBGL_lose_context')?.loseContext();
+          return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
+        } catch {
+          return true;
+        }
+      })();
 
-    const isInitLight = themeRef.current === 'light';
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+
+      const isInitLight = themeRef.current === 'light';
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(isInitLight ? 0xeef3ff : 0x080b1a);
     scene.fog = new THREE.FogExp2(isInitLight ? 0xeef3ff : 0x080b1a, 0.042);
@@ -705,28 +708,35 @@ export default function StudioScene3D({ theme }: { theme: ThemeMode }) {
       }
     }
 
-    tick();
+      tick();
+
+      cleanupFn = () => {
+        disposed = true;
+        cancelAnimationFrame(frameId);
+        clearTimeout(frameId);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('resize', handleResize);
+        controls.removeEventListener('start', onControlStart);
+        controls.removeEventListener('end', onControlEnd);
+        controls.dispose();
+        canvas.removeEventListener('webglcontextlost', onContextLost);
+        canvas.removeEventListener('webglcontextrestored', onContextRestored);
+
+        geometriesToDispose.forEach((g) => g.dispose());
+        materialsToDispose.forEach((m) => m.dispose());
+        texturesToDispose.forEach((t) => t.dispose());
+        envRT.dispose();
+        renderer.dispose();
+        if (canvas.parentElement === container) {
+          container.removeChild(canvas);
+        }
+      };
+    } catch {
+      setContextLost(true);
+    }
 
     return () => {
-      disposed = true;
-      cancelAnimationFrame(frameId);
-      clearTimeout(frameId);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('resize', handleResize);
-      controls.removeEventListener('start', onControlStart);
-      controls.removeEventListener('end', onControlEnd);
-      controls.dispose();
-      canvas.removeEventListener('webglcontextlost', onContextLost);
-      canvas.removeEventListener('webglcontextrestored', onContextRestored);
-
-      geometriesToDispose.forEach((g) => g.dispose());
-      materialsToDispose.forEach((m) => m.dispose());
-      texturesToDispose.forEach((t) => t.dispose());
-      envRT.dispose();
-      renderer.dispose();
-      if (canvas.parentElement === container) {
-        container.removeChild(canvas);
-      }
+      cleanupFn?.();
     };
   }, []);
 
@@ -739,11 +749,18 @@ export default function StudioScene3D({ theme }: { theme: ThemeMode }) {
         aria-label="Interactive 3D architectural prism sculpture representing WebFlow Creative Studio"
       />
 
-      {/* WebGL Context Lost Fallback */}
+      {/* WebGL Unavailable / Context Lost Architectural Fallback */}
       {contextLost && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-[#080B1A] text-slate-600 dark:text-[#A2A9C3] text-sm">
-          3D viewport paused while graphics context restores.
-        </div>
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[#EEF3FF] dark:bg-[#080B1A]"
+          style={{
+            backgroundImage:
+              theme === 'dark'
+                ? 'radial-gradient(circle at 72% 45%, rgba(57, 123, 255, 0.22), rgba(133, 85, 255, 0.14) 32%, transparent 65%)'
+                : 'radial-gradient(circle at 72% 45%, rgba(57, 123, 255, 0.18), rgba(133, 85, 255, 0.1) 32%, transparent 65%)',
+          }}
+        />
       )}
 
       {/* Collapsible Compact Bottom Control Dock (solid rgba surface, no backdrop-filter over WebGL) */}

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { X, ArrowUpRight, Layers, Film } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, ArrowUpRight, Layers, Film, Download, Loader2, Check } from 'lucide-react';
 import type { ProjectItem } from '../data/studioData';
 
 interface ProjectModalProps {
@@ -8,6 +8,14 @@ interface ProjectModalProps {
 }
 
 export default function ProjectModal({ project, onClose }: ProjectModalProps) {
+  const [downloading, setDownloading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+
+  useEffect(() => {
+    setDownloading(false);
+    setDownloaded(false);
+  }, [project]);
+
   useEffect(() => {
     if (!project) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -26,6 +34,97 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
   }, [project, onClose]);
 
   if (!project) return null;
+
+  const caseStudyUrl = `./api/case-study/${project.id}.pdf`;
+  const caseStudyFilename = `${project.id}-case-study.pdf`;
+
+  const buildClientPdfBlob = (item: ProjectItem): Blob => {
+    const sanitize = (str: string) =>
+      str
+        .replace(/[^\x20-\x7E]/g, ' ')
+        .replace(/[()\\]/g, '')
+        .slice(0, 74);
+
+    const streamContent = [
+      'BT',
+      '/F1 18 Tf',
+      '54 740 Td',
+      '(WebFlow Creative Studio - Project Case Study) Tj',
+      '0 -28 Td',
+      '/F1 13 Tf',
+      `(Project: ${sanitize(item.title)} [${sanitize(item.category)}]) Tj`,
+      '0 -22 Td',
+      `(Tools: ${sanitize(item.tools)}) Tj`,
+      '0 -22 Td',
+      `(Status: ${sanitize(item.status)}) Tj`,
+      '0 -26 Td',
+      '(Prepared by WebFlow Creative Studio | Ghana / Worldwide Remote) Tj',
+      '0 -20 Td',
+      '(Contact: 01webflow@gmail.com | +233 24 369 2913) Tj',
+      'ET',
+    ].join('\n');
+
+    const objects = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n',
+      `4 0 obj\n<< /Length ${streamContent.length} >>\nstream\n${streamContent}\nendstream\nendobj\n`,
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+    ];
+
+    let pdf = '%PDF-1.4\n';
+    const offsets: number[] = [0];
+    for (const obj of objects) {
+      offsets.push(pdf.length);
+      pdf += obj;
+    }
+    const xrefStart = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    for (let i = 1; i <= objects.length; i++) {
+      pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`;
+    return new Blob([pdf], { type: 'application/pdf' });
+  };
+
+  const handleDownloadClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (downloading) return;
+    setDownloading(true);
+    setDownloaded(false);
+
+    try {
+      let blob: Blob | null = null;
+      try {
+        const res = await fetch(caseStudyUrl);
+        const ct = res.headers.get('content-type') || '';
+        if (res.ok && ct.includes('application/pdf')) {
+          blob = await res.blob();
+        }
+      } catch {
+        // Static deployment fallback below
+      }
+
+      if (!blob) {
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+        blob = buildClientPdfBlob(project);
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = caseStudyFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+
+      setDownloaded(true);
+      window.setTimeout(() => setDownloaded(false), 2600);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div
@@ -110,7 +209,7 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
               </div>
             </div>
 
-            <div className="space-y-5 border-t md:border-t-0 md:border-l border-slate-200 dark:border-white/10 pt-5 md:pt-0 md:pl-6">
+            <div className="space-y-4 border-t md:border-t-0 md:border-l border-slate-200 dark:border-white/10 pt-5 md:pt-0 md:pl-6">
               <div>
                 <p className="text-xs text-slate-500 dark:text-[#A2A9C3] mb-1">Project Status</p>
                 <p className="text-sm font-medium text-slate-900 dark:text-[#F5F7FF]">
@@ -124,8 +223,8 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
                 </p>
               </div>
 
-              {project.liveUrl && (
-                <div className="pt-2">
+              <div className="pt-2 space-y-2.5">
+                {project.liveUrl && (
                   <a
                     href={project.liveUrl}
                     target="_blank"
@@ -135,10 +234,33 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
                     <span>Open Live Interface</span>
                     <ArrowUpRight className="w-4 h-4" />
                   </a>
-                </div>
-              )}
+                )}
 
-              <div className="pt-1">
+                <a
+                  href={caseStudyUrl}
+                  download={caseStudyFilename}
+                  onClick={handleDownloadClick}
+                  aria-busy={downloading}
+                  className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#397BFF]/15 to-[#8555FF]/15 hover:from-[#397BFF]/25 hover:to-[#8555FF]/25 border border-[#397BFF]/40 text-sm font-medium text-slate-900 dark:text-[#F5F7FF] transition-colors whitespace-nowrap"
+                >
+                  {downloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 text-[#397BFF] animate-spin shrink-0" />
+                      <span>Preparing PDF...</span>
+                    </>
+                  ) : downloaded ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Case Study Downloaded</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 text-[#397BFF] shrink-0" />
+                      <span>Download Project Case Study</span>
+                    </>
+                  )}
+                </a>
+
                 <a
                   href="#contact"
                   onClick={onClose}
