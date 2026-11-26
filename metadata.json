@@ -1,0 +1,6 @@
+{
+  "name": "WebFlow Creative Studio",
+  "description": "AI Website Designer & Digital Creative based in Ghana, available worldwide. Modern websites, distinctive brand identities, and AI-powered creative content.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
